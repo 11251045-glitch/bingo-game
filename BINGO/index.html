@@ -3,113 +3,64 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BINGOX - 玩家參與</title>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <title>BINGOX - 遊戲入口</title>
     <style>
-        body { 
-            background: #0f0f0f; color: white; font-family: sans-serif; 
-            display: flex; flex-direction: column; align-items: center; min-height: 100vh; margin: 0;
+        body {
+            margin: 0; padding: 0; background: #0a0a0a;
+            color: white; font-family: 'Segoe UI', sans-serif;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            height: 100vh; overflow: hidden;
         }
-        .header { margin: 20px; text-align: center; }
-        .current-announcement { color: #f1c40f; font-size: 1.2rem; margin-bottom: 10px; height: 24px; }
+        h1 {
+            font-size: 3rem; margin-bottom: 50px; color: #f1c40f;
+            text-shadow: 0 0 20px #f39c12; letter-spacing: 5px;
+            animation: fadeInDown 1s ease-out;
+        }
+        .menu-container {
+            display: flex; flex-direction: column; gap: 20px; width: 80%; max-width: 300px;
+        }
+        .menu-btn {
+            padding: 20px; font-size: 1.2rem; font-weight: bold; text-align: center;
+            text-decoration: none; border-radius: 50px; transition: all 0.3s;
+            border: 2px solid transparent;
+        }
+        /* 玩家按鈕：藍色霓虹 */
+        .btn-player {
+            color: #00d2ff; border-color: #00d2ff;
+            box-shadow: inset 0 0 10px rgba(0,210,255,0.2), 0 0 20px rgba(0,210,255,0.2);
+        }
+        .btn-player:hover { background: #00d2ff; color: #000; box-shadow: 0 0 40px #00d2ff; }
 
-        /* 賓果卡片樣式 */
-        .bingo-board { 
-            display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; 
-            padding: 15px; background: rgba(255,255,255,0.05); border-radius: 15px;
-            backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        /* 大螢幕按鈕：紫色霓虹 */
+        .btn-display {
+            color: #9d50bb; border-color: #9d50bb;
+            box-shadow: inset 0 0 10px rgba(157,80,187,0.2), 0 0 20px rgba(157,80,187,0.2);
         }
-        .cell {
-            width: 60px; height: 60px; background: #222; border-radius: 8px;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 20px; font-weight: bold; cursor: pointer;
-            transition: all 0.3s; border: 1px solid #333;
-        }
-        /* 被點擊後的發光效果 */
-        .cell.marked { 
-            background: linear-gradient(145deg, #f39c12, #d35400); 
-            color: black; border-color: #fff; transform: scale(0.95);
-            box-shadow: 0 0 15px #f39c12;
-        }
-        /* 當該數字確實被大螢幕抽出時的提示 */
-        .cell.verified { border: 2px solid #00ff00; }
+        .btn-display:hover { background: #9d50bb; color: #fff; box-shadow: 0 0 40px #9d50bb; }
 
-        .info { margin-top: 20px; font-size: 14px; color: #666; }
+        /* 管理員按鈕：紅色霓虹 */
+        .btn-admin {
+            color: #ff4e50; border-color: #ff4e50; font-size: 0.9rem; margin-top: 30px; opacity: 0.6;
+        }
+        .btn-admin:hover { opacity: 1; border-color: #ff4e50; color: #ff4e50; box-shadow: 0 0 15px #ff4e50; }
+
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
     </style>
 </head>
 <body>
 
-    <div class="header">
-        <div id="msg" class="current-announcement">等待開獎...</div>
-        <h2 style="margin:0; color:#eee;">我的賓果卡</h2>
+    <h1>BINGO X</h1>
+
+    <div class="menu-container">
+        <a href="game.html" class="menu-btn btn-player">進入遊戲 (玩家)</a>
+        <a href="display.html" class="menu-btn btn-display">大螢幕顯示</a>
+        <a href="admin.html" class="menu-btn btn-admin">後台管理系統</a>
     </div>
 
-    <div id="board" class="bingo-board"></div>
+    <p style="margin-top: 50px; font-size: 0.8rem; color: #444;">© 2026 BingoX Clone by Gemini</p>
 
-    <div class="info">提示：點擊數字來標記，連成一線即獲勝！</div>
-
-    <script>
-        // 1. 初始化 Firebase
-       const firebaseConfig = {
-  apiKey: "AIzaSyBB5QZq1lr27ULHh9Qbk_KJMDvUpglYrFs",
-  authDomain: "bingo-83c8a.firebaseapp.com",
-  databaseURL: "https://bingo-83c8a-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "bingo-83c8a",
-  storageBucket: "bingo-83c8a.firebasestorage.app",
-  messagingSenderId: "154760297789",
-  appId: "1:154760297789:web:03f31621a38128fab01954",
-  measurementId: "G-N1N1GZW6NG"
-};
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
-
-        let myNumbers = [];
-        let historyNumbers = [];
-
-        // 2. 生成隨機卡片 (1-75 中選 25 個)
-        function createBoard() {
-            const boardElement = document.getElementById('board');
-            const pool = Array.from({length: 75}, (_, i) => i + 1);
-            myNumbers = pool.sort(() => Math.random() - 0.5).slice(0, 25);
-
-            myNumbers.forEach(num => {
-                const cell = document.createElement('div');
-                cell.className = 'cell';
-                cell.innerText = num;
-                cell.id = `cell-${num}`;
-                cell.onclick = () => {
-                    cell.classList.toggle('marked');
-                    checkWin();
-                };
-                boardElement.appendChild(cell);
-            });
-        }
-
-        // 3. 監聽大螢幕開獎情況，幫玩家對獎
-        db.ref('game/currentNum').on('value', (snapshot) => {
-            const num = snapshot.val();
-            if (num && num !== 0) {
-                document.getElementById('msg').innerText = `📢 最新號碼：${num}`;
-                // 如果我的卡片有這個號碼，給它一個綠色邊框提示
-                const myCell = document.getElementById(`cell-${num}`);
-                if (myCell) {
-                    myCell.classList.add('verified');
-                    if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
-                }
-            }
-        });
-
-        // 簡易連線檢查 (示意)
-        function checkWin() {
-            // 這裡可以加入更複雜的 5x5 連線邏輯
-            console.log("Checking line...");
-        }
-
-        createBoard();
-    </script>
 </body>
 </html>
