@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <title>BINGOX - 主控台</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    
+    <style>
+        body { 
+            background: #121212; color: white; font-family: sans-serif; 
+            display: flex; flex-direction: column; align-items: center; justify-content: center; 
+            height: 100vh; margin: 0; overflow: hidden;
+        }
+        /* 發光大按鈕 */
+        .draw-btn {
+            width: 200px; height: 200px; border-radius: 50%; border: none;
+            background: linear-gradient(145deg, #ff4e50, #f9d423);
+            color: white; font-size: 24px; font-weight: bold; cursor: pointer;
+            box-shadow: 0 0 30px rgba(255, 78, 80, 0.6);
+            transition: all 0.2s; outline: none; -webkit-tap-highlight-color: transparent;
+        }
+        .draw-btn:active {
+            transform: scale(0.9);
+            box-shadow: 0 0 10px rgba(255, 78, 80, 0.4);
+        }
+        .draw-btn:disabled { background: #444; box-shadow: none; cursor: not-allowed; }
+
+        /* 狀態顯示 */
+        #status { margin-top: 30px; font-size: 18px; color: #aaa; }
+        .reset-btn {
+            margin-top: 50px; background: transparent; border: 1px solid #555;
+            color: #555; padding: 10px 20px; border-radius: 5px; cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <button id="mainBtn" class="draw-btn" onclick="generateNumber()">抽號碼！</button>
+    <div id="status">準備就緒</div>
+    
+    <button class="reset-btn" onclick="resetGame()">重設遊戲</button>
+
+    <script>
+        // 1. 初始化 Firebase (請確保與大螢幕端相同)
+const firebaseConfig = {
+  apiKey: "AIzaSyBB5QZq1lr27ULHh9Qbk_KJMDvUpglYrFs",
+  authDomain: "bingo-83c8a.firebaseapp.com",
+  databaseURL: "https://bingo-83c8a-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "bingo-83c8a",
+  storageBucket: "bingo-83c8a.firebasestorage.app",
+  messagingSenderId: "154760297789",
+  appId: "1:154760297789:web:03f31621a38128fab01954",
+  measurementId: "G-N1N1GZW6NG"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
+        let drawnNumbers = [];
+
+        // 監聽現有的歷史紀錄，避免重整頁面後號碼重複
+        db.ref('game/history').on('value', (snapshot) => {
+            const history = snapshot.val();
+            if (history) {
+                drawnNumbers = history.split(',').map(Number);
+                document.getElementById('status').innerText = `已抽出 ${drawnNumbers.length} 個號碼`;
+            } else {
+                drawnNumbers = [];
+                document.getElementById('status').innerText = "準備就緒";
+            }
+        });
+
+        // 核心邏輯：生成號碼並推送到雲端
+        function generateNumber() {
+            if (drawnNumbers.length >= 75) {
+                alert("所有號碼已抽完！");
+                return;
+            }
+
+            let newNum;
+            do {
+                newNum = Math.floor(Math.random() * 75) + 1;
+            } while (drawnNumbers.includes(newNum));
+
+            // 更新 Firebase
+            const newHistory = drawnNumbers.length === 0 ? newNum.toString() : [...drawnNumbers, newNum].join(',');
+            
+            // 使用 update 同步更新當前號碼與歷史
+            db.ref('game').update({
+                currentNum: newNum,
+                history: newHistory
+            });
+
+            // 手機震動反饋 (需手機瀏覽器支援)
+            if (navigator.vibrate) navigator.vibrate(50);
+        }
+
+        // 重設遊戲
+        function resetGame() {
+            if (confirm("確定要清除所有號碼重新開始嗎？")) {
+                db.ref('game').set({
+                    currentNum: 0,
+                    history: ""
+                });
+            }
+        }
+    </script>
+</body>
+</html>

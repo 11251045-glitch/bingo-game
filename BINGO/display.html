@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <title>BINGOX - 超高級大螢幕</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    
+    <style>
+        body { 
+            margin: 0; background: radial-gradient(circle, #2c3e50, #000000); 
+            color: white; font-family: 'Segoe UI', sans-serif; overflow: hidden; height: 100vh;
+        }
+        /* 標題動畫 */
+        h1 { font-size: 3rem; color: #f1c40f; text-shadow: 0 0 20px #f39c12; margin-top: 20px; animation: glow 2s infinite alternate; }
+        
+        @keyframes glow { from { text-shadow: 0 0 10px #f39c12; } to { text-shadow: 0 0 30px #e67e22, 0 0 40px #e67e22; } }
+
+        /* 當前號碼大球 */
+        #ball-container { display: flex; justify-content: center; align-items: center; height: 50vh; }
+        #number-ball {
+            width: 250px; height: 250px; background: radial-gradient(circle at 30% 30%, #f39c12, #d35400);
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            font-size: 120px; font-weight: bold; border: 8px solid #fff;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5), inset -10px -10px 20px rgba(0,0,0,0.3);
+            transform: scale(0); transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        #number-ball.pop { transform: scale(1.2); animation: pulse 0.5s infinite alternate; }
+        
+        @keyframes pulse { to { transform: scale(1); } }
+
+        /* 歷史號碼區 */
+        .history-panel { background: rgba(255, 255, 255, 0.1); padding: 20px; position: absolute; bottom: 0; width: 100%; height: 20vh; overflow-x: auto; display: flex; gap: 15px; align-items: center; backdrop-filter: blur(10px); }
+        .num-small { width: 60px; height: 60px; background: #fff; color: #333; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; animation: slideIn 0.5s forwards; }
+
+        @keyframes slideIn { from { transform: translateX(100px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+        canvas { position: fixed; top: 0; left: 0; pointer-events: none; }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    <center><h1>BINGO X 連線中...</h1></center>
+    
+    <div id="ball-container">
+        <div id="number-ball">--</div>
+    </div>
+
+    <div class="history-panel" id="history">
+        </div>
+
+    <script>
+        // 1. 初始化 Firebase (請將下方 config 換成你自己的)
+        const firebaseConfig = {
+  apiKey: "AIzaSyBB5QZq1lr27ULHh9Qbk_KJMDvUpglYrFs",
+  authDomain: "bingo-83c8a.firebaseapp.com",
+  databaseURL: "https://bingo-83c8a-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "bingo-83c8a",
+  storageBucket: "bingo-83c8a.firebasestorage.app",
+  messagingSenderId: "154760297789",
+  appId: "1:154760297789:web:03f31621a38128fab01954",
+  measurementId: "G-N1N1GZW6NG"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
+
+        // 2. 監聽數據庫變化
+        const ball = document.getElementById('number-ball');
+        const historyDiv = document.getElementById('history');
+
+        db.ref('game/currentNum').on('value', (snapshot) => {
+            const num = snapshot.val();
+            if (num && num !== 0) {
+                showNumber(num);
+            }
+        });
+
+        db.ref('game/history').on('value', (snapshot) => {
+            const history = snapshot.val() || "";
+            updateHistory(history);
+        });
+
+        function showNumber(num) {
+            ball.innerText = num;
+            ball.classList.remove('pop');
+            void ball.offsetWidth; // 觸發重新渲染動畫
+            ball.classList.add('pop');
+            celebrate(); // 啟動高級煙火特效
+        }
+
+        function updateHistory(historyStr) {
+            historyDiv.innerHTML = "";
+            const nums = historyStr.split(',').filter(n => n !== "");
+            nums.forEach(n => {
+                const div = document.createElement('div');
+                div.className = 'num-small';
+                div.innerText = n;
+                historyDiv.appendChild(div);
+            });
+        }
+
+        // 3. 高級特效：拉炮煙火
+        function celebrate() {
+            const canvas = document.getElementById('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            let particles = [];
+            for(let i=0; i<100; i++){
+                particles.push({
+                    x: canvas.width/2, y: canvas.height/2,
+                    vx: (Math.random()-0.5)*20, vy: (Math.random()-0.5)*20,
+                    size: Math.random()*10+5, color: `hsl(${Math.random()*360}, 70%, 50%)`
+                });
+            }
+            function draw() {
+                ctx.clearRect(0,0, canvas.width, canvas.height);
+                particles.forEach((p, i) => {
+                    p.x += p.vx; p.y += p.vy; p.vy += 0.2;
+                    ctx.fillStyle = p.color;
+                    ctx.fillRect(p.x, p.y, p.size, p.size);
+                });
+                if(particles[0].y < canvas.height) requestAnimationFrame(draw);
+            }
+            draw();
+        }
+    </script>
+</body>
+</html>
